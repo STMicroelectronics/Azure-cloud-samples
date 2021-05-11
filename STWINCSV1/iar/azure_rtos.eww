@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspace>
+    <project>
+        <path>$WS_DIR$\STWinSampleApp\STWinSampleApp.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\netxduo\netxduo.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\stm32l4xx_lib\stm32l4xx_lib.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\threadx\threadx.ewp</path>
+    </project>
+    <batchBuild>
+        <batchDefinition>
+            <name>build_all</name>
+            <member>
+                <project>threadx</project>
+                <configuration>Debug</configuration>
+            </member>
+            <member>
+                <project>netxduo</project>
+                <configuration>Debug</configuration>
+            </member>
+            <member>
+                <project>stm32l4xx_lib</project>
+                <configuration>Debug</configuration>
+            </member>
+            <member>
+                <project>STWinSampleApp</project>
+                <configuration>Debug</configuration>
+            </member>
+        </batchDefinition>
+    </batchBuild>
+</workspace>
