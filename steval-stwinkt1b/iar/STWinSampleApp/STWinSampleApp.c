@@ -582,7 +582,9 @@ UINT last_component_len = 0;
                                                                          &name_value_reader) == NX_AZURE_IOT_SUCCESS)
     {
       //workaround for answering to 2 desired properties for one component in the same time
-      if((component_ptr==NX_NULL) & (component_len==0)) {
+      
+      //if((component_ptr==NX_NULL) & (component_len==0)) {
+      if((component_len==0)) {
         //if we are still in the same component... use the previous name
         component_ptr = last_component_ptr;
         component_len = last_component_len;
