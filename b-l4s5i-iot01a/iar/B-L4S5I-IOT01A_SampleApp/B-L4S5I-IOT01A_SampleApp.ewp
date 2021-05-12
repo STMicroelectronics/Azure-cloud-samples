@@ -680,7 +680,7 @@
                 </option>
                 <option>
                     <name>OOCOutputFile</name>
-                    <state>sample.bin</state>
+                    <state>B-L4S5I-IOT01A_SampleApp.bin</state>
                 </option>
                 <option>
                     <name>OOCCommandLineProducer</name>
@@ -735,7 +735,7 @@
                 </option>
                 <option>
                     <name>IlinkOutputFile</name>
-                    <state>sample.out</state>
+                    <state>B-L4S5I-IOT01A_SampleApp.out</state>
                 </option>
                 <option>
                     <name>IlinkDebugInfoEnable</name>

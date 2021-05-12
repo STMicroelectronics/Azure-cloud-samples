@@ -684,7 +684,7 @@
                 </option>
                 <option>
                     <name>OOCOutputFile</name>
-                    <state>sample.bin</state>
+                    <state>STWinSampleApp.bin</state>
                 </option>
                 <option>
                     <name>OOCCommandLineProducer</name>
@@ -739,7 +739,7 @@
                 </option>
                 <option>
                     <name>IlinkOutputFile</name>
-                    <state>sample.out</state>
+                    <state>STWinSampleApp.out</state>
                 </option>
                 <option>
                     <name>IlinkDebugInfoEnable</name>
