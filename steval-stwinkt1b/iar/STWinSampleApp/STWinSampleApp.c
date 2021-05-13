@@ -342,8 +342,8 @@ static VOID sample_initialize_iothub(SAMPLE_CONTEXT *context)
   
   /* Set symmetric key.  */
   if ((status = nx_azure_iot_pnp_client_symmetric_key_set(iotpnp_client_ptr,
-                                                          (UCHAR *)(AzureConnectionInfo.PrimaryKey),
-                                                          strlen((char *)AzureConnectionInfo.PrimaryKey))))
+                                                          (UCHAR *)(AzureCustomization.AzureConnectionInfo.PrimaryKey),
+                                                          strlen((char *)AzureCustomization.AzureConnectionInfo.PrimaryKey))))
   {
     AZURE_PRINTF("Failed on nx_azure_iot_pnp_client_symmetric_key_set! error: 0x%08x\r\n", status);
   }
@@ -753,8 +753,8 @@ static UINT sample_dps_entry(NX_AZURE_IOT_PROVISIONING_CLIENT *prov_client_ptr,
   /* Initialize IoT provisioning client.  */
   if ((status = nx_azure_iot_provisioning_client_initialize(prov_client_ptr, &nx_azure_iot,
                                                             (UCHAR *)ENDPOINT, sizeof(ENDPOINT) - 1,
-                                                            (UCHAR *)AzureConnectionInfo.ScopeID, strlen((char *)AzureConnectionInfo.ScopeID),
-                                                            (UCHAR *)AzureConnectionInfo.DeviceID, strlen((char *)AzureConnectionInfo.DeviceID),
+                                                            (UCHAR *)AzureCustomization.AzureConnectionInfo.ScopeID, strlen((char *)AzureCustomization.AzureConnectionInfo.ScopeID),
+                                                            (UCHAR *)AzureCustomization.AzureConnectionInfo.DeviceID, strlen((char *)AzureCustomization.AzureConnectionInfo.DeviceID),
                                                             _nx_azure_iot_tls_supported_crypto,
                                                             _nx_azure_iot_tls_supported_crypto_size,
                                                             _nx_azure_iot_tls_ciphersuite_map,
@@ -772,8 +772,8 @@ static UINT sample_dps_entry(NX_AZURE_IOT_PROVISIONING_CLIENT *prov_client_ptr,
   *iothub_device_id_length = sizeof(sample_iothub_device_id);
   
   /* Set symmetric key.  */ 
-  if ((status = nx_azure_iot_provisioning_client_symmetric_key_set(prov_client_ptr, (UCHAR *)(AzureConnectionInfo.PrimaryKey),
-                                                                   strlen((char *)AzureConnectionInfo.PrimaryKey))))
+  if ((status = nx_azure_iot_provisioning_client_symmetric_key_set(prov_client_ptr, (UCHAR *)(AzureCustomization.AzureConnectionInfo.PrimaryKey),
+                                                                   strlen((char *)AzureCustomization.AzureConnectionInfo.PrimaryKey))))
   {
     AZURE_PRINTF("Failed on nx_azure_iot_pnp_client_symmetric_key_set!: error code = 0x%08x\r\n", status);
   }

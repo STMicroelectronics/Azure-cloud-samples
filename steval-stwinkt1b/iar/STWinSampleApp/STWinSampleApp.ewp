@@ -1119,9 +1119,6 @@
             <name>$PROJ_DIR$\main.c</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\MetaDataManager.c</name>
-        </file>
-        <file>
             <name>$PROJ_DIR$\nx_azure_iot_cert.c</name>
         </file>
         <file>

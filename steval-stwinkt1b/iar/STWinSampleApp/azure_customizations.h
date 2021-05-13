@@ -6,6 +6,7 @@ extern   "C" {
 #endif
   
 /*********************** Don't change the following Section *******************/
+#include "wifi.h"
   
 #define AZURE_ENABLE_PRINTF
 
@@ -20,12 +21,32 @@ extern   "C" {
  */
 typedef struct
 {
-  unsigned char ScopeID[64];
-  unsigned char DeviceID[128];
-  unsigned char PrimaryKey[128];
+  char ScopeID[64];
+  char DeviceID[128];
+  char PrimaryKey[128];
 } AzureConnection_t;
 
-extern AzureConnection_t AzureConnectionInfo; 
+
+/**
+ * @brief  Wi-Fi Credential
+ */
+typedef struct {
+   char SSID[64];
+   char Password[64];
+   WIFI_Ecn_t ecnWiFi;
+} WIFI_CredAcc_t;
+
+
+/**
+ * @brief  Global structure for saving Data on Flash
+ */
+typedef struct {
+  uint32_t DataInitialized;
+  AzureConnection_t AzureConnectionInfo;
+  WIFI_CredAcc_t WiFiCred;
+} AZURE_Customization_t;
+
+extern AZURE_Customization_t AzureCustomization;
 
 
 #ifdef __cplusplus

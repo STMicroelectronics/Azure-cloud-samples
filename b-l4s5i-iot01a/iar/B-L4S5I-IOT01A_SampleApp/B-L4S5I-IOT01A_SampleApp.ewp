@@ -1097,9 +1097,6 @@
             <name>$PROJ_DIR$\es_wifi.c</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\MetaDataManager.c</name>
-        </file>
-        <file>
             <name>$PROJ_DIR$\startup_stm32l4s5xx.s</name>
         </file>
         <file>

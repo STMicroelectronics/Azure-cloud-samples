@@ -14,8 +14,8 @@
 #include "wifi.h"
 
 #include "azure_customizations.h"
-#include "MetaDataManager.h"
 
+AZURE_Customization_t AzureCustomization;
 extern ES_WIFIObject_t    EsWifiObj;
 UART_HandleTypeDef UartHandle;
 
@@ -48,13 +48,6 @@ extern  SPI_HandleTypeDef hspi;
 #define STM32_RNG_SR_CEIS                   0x00000020
 #define STM32_RNG_SR_SEIS                   0x00000040
 
-
-typedef struct {
-   char SSID[64];
-   char Password[64];
-   WIFI_Ecn_t ecnWiFi;
-} WIFI_CredAcc_t;
-
 typedef enum
 {
   WS_IDLE = 0,
@@ -66,8 +59,6 @@ typedef enum
 static volatile int32_t UserButtonPressed =0;
 
 extern SPI_HandleTypeDef hspi_wifi;
-
-AzureConnection_t AzureConnectionInfo;
 
 
 static void Init_MEMS_Sensors(void);
@@ -125,88 +116,6 @@ static uint32_t GetBank(uint32_t Addr)
     }
   }
   return bank;
-}
-
-/**
- * @brief User function for Erasing the MDM on Flash
- * @param None
- * @retval uint32_t Success/NotSuccess [1/0]
- */
-uint32_t UserFunctionForErasingFlash(void) {
-  FLASH_EraseInitTypeDef EraseInitStruct;
-  uint32_t SectorError = 0;
-  uint32_t Success=1;
-
-  EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
-  EraseInitStruct.Banks       = GetBank(MDM_FLASH_ADD);
-  EraseInitStruct.Page        = GetPage(MDM_FLASH_ADD);
-
-  EraseInitStruct.NbPages     = 1; /* Each page is 4k */
-
-
-  /* Unlock the Flash to enable the flash control register access *************/
-  HAL_FLASH_Unlock();
-  
-
-   /* Clear OPTVERR bit set on virgin samples */
-  __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
-  /* Clear PEMPTY bit set (as the code is executed from Flash which is not empty) */
-  if (__HAL_FLASH_GET_FLAG(FLASH_FLAG_PEMPTY) != 0) {
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PEMPTY);
-  }
-
-
-  if(HAL_FLASHEx_Erase(&EraseInitStruct, &SectorError) != HAL_OK){
-    /* Error occurred while sector erase.
-      User can add here some code to deal with this error.
-      SectorError will contain the faulty sector and then to know the code error on this sector,
-      user can call function 'HAL_FLASH_GetError()'
-      FLASH_ErrorTypeDef errorcode = HAL_FLASH_GetError(); */
-    Success=0;
-    AZURE_PRINTF("MetaDataManager Flash sector erase error\r\n");
-    while(1);
-  }
-
-  /* Lock the Flash to disable the flash control register access (recommended
-  to protect the FLASH memory against possible unwanted operation) *********/
-  HAL_FLASH_Lock();
-
-  return Success;
-}
-
-/**
- * @brief User function for Saving the MDM  on the Flash
- * @param void * InitMetaDataVector Pointer to the MDM beginning
- * @param void * EndMetaDataVector Pointer to the MDM end
- * @retval uint32_t Success/NotSuccess [1/0]
- */
-uint32_t UserFunctionForSavingFlash(void *InitMetaDataVector,void *EndMetaDataVector)
-{
-  uint32_t Success=1;
-
-  /* Store in Flash Memory */
-  uint32_t Address = MDM_FLASH_ADD;
-  uint64_t *WriteIndex;
-
-  /* Unlock the Flash to enable the flash control register access *************/
-  HAL_FLASH_Unlock();
-  for(WriteIndex =((uint64_t *) InitMetaDataVector); WriteIndex<((uint64_t *) EndMetaDataVector); WriteIndex++) {
-    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, Address,*WriteIndex) == HAL_OK){
-      Address = Address + 8;
-    } else {
-      /* Error occurred while writing data in Flash memory.
-         User can add here some code to deal with this error
-         FLASH_ErrorTypeDef errorcode = HAL_FLASH_GetError(); */
-      Success =0;
-      while(1);
-    }
-  }
-
-  /* Lock the Flash to disable the flash control register access (recommended
-   to protect the FLASH memory against possible unwanted operation) *********/
-  HAL_FLASH_Lock();
- 
-  return Success;
 }
 
 int hardware_rand(void)
@@ -318,9 +227,7 @@ void EXTI15_10_IRQHandler(void)
 }
 
 int  board_setup(void)
-{
-  WIFI_CredAcc_t WiFiCred;
-  
+{ 
   /* Enable execution profile.  */
   CoreDebug -> DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT -> CTRL |= DWT_CTRL_CYCCNTENA_Msk;
@@ -359,35 +266,27 @@ int  board_setup(void)
 
   //Read the data from Flash, if they are present or set the default values
   {
-    int32_t NecessityToSaveMMD=0;
+#define AZURE_VALID_DATA_FLASH ((uint32_t)0x12345678)
+#define MDM_FLASH_ADD ((uint32_t)0x081FF000)
+    int32_t NecessityToSaveMMD=0;    
     int32_t ChangeDefaultValue=0;
+    uint32_t SourceAddress = MDM_FLASH_ADD;
     
-    MDM_knownGMD_t known_MetaData[]={
-      {GMD_WIFI,sizeof(WIFI_CredAcc_t)},
-      {GMD_AZURE,sizeof(AzureConnection_t)},
-      {GMD_END    ,0}/* THIS MUST BE THE LAST ONE */
-    };
-    
-    /* Initialize the MetaDataManager */
-    InitMetaDataManager((void *)&known_MetaData,MDM_DATA_TYPE_GMD,NULL);
-    
-    /* Reset the Values */
-    memset(&WiFiCred,0,sizeof(WIFI_CredAcc_t));
-    memset(&AzureConnectionInfo,0,sizeof(AzureConnection_t));
-
-    /* Recall the saved information */
-    MDM_ReCallGMD(GMD_WIFI,(void *)&WiFiCred);
-    MDM_ReCallGMD(GMD_AZURE,(void *)&AzureConnectionInfo);
+    if(( *(uint32_t*) SourceAddress)==AZURE_VALID_DATA_FLASH) {
+      memcpy(&AzureCustomization,(void *)SourceAddress,sizeof(AZURE_Customization_t));
+    } else {
+      memset(&AzureCustomization,0,sizeof(AZURE_Customization_t));
+    }
     
     AZURE_PRINTF("--------------------------\r\n");
     AZURE_PRINTF("|    WIFI Credential     |\r\n");
     AZURE_PRINTF("--------------------------\r\n");
     
-    if(WiFiCred.SSID[0]!=0) {
-      AZURE_PRINTF("\tSaved SSID   : %s\r\n",WiFiCred.SSID);
-      AZURE_PRINTF("\tSaved PassWd : %s\r\n",WiFiCred.Password);
+    if(AzureCustomization.WiFiCred.SSID[0]!=0) {
+      AZURE_PRINTF("\tSaved SSID   : %s\r\n",AzureCustomization.WiFiCred.SSID);
+      AZURE_PRINTF("\tSaved PassWd : %s\r\n",AzureCustomization.WiFiCred.Password);
       AZURE_PRINTF("\tSaved EncMode: ");
-      switch(WiFiCred.ecnWiFi) {
+      switch(AzureCustomization.WiFiCred.ecnWiFi) {
         case   WIFI_ECN_OPEN:
           AZURE_PRINTF("Open\r\n");
           break;
@@ -451,7 +350,7 @@ int  board_setup(void)
           console_input[IndexWrite]='\0';\
         }
         ChangeDefaultValue=0;
-        if(WiFiCred.SSID[0]!=0) {
+        if(AzureCustomization.WiFiCred.SSID[0]!=0) {
           AZURE_PRINTF("\r\nDo you want to change them?(y/n)\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
         } else {
@@ -461,28 +360,28 @@ int  board_setup(void)
           NecessityToSaveMMD=1;
           AZURE_PRINTF("\r\nEnter the SSID:\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
-          sprintf(WiFiCred.SSID,"%s",console_input);
+          sprintf(AzureCustomization.WiFiCred.SSID,"%s",console_input);
           AZURE_PRINTF("\r\nEnter the PassWd:\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
-          sprintf(WiFiCred.Password,"%s",console_input);
+          sprintf(AzureCustomization.WiFiCred.Password,"%s",console_input);
           AZURE_PRINTF("\r\nEnter the encryption mode(0:Open, 1:WEP, 2:WPA2/WPA2):\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
           switch(console_input[0]){
             case '0':
-              WiFiCred.ecnWiFi = WIFI_ECN_OPEN;
+              AzureCustomization.WiFiCred.ecnWiFi = WIFI_ECN_OPEN;
             break;
             case '1':
-              WiFiCred.ecnWiFi = WIFI_ECN_WEP;
+              AzureCustomization.WiFiCred.ecnWiFi = WIFI_ECN_WEP;
             break;
             case '2':
-              WiFiCred.ecnWiFi = WIFI_ECN_WPA2_PSK;
+              AzureCustomization.WiFiCred.ecnWiFi = WIFI_ECN_WPA2_PSK;
             break;
           }
           
-          AZURE_PRINTF("New     SSID  : [%s]\r\n",WiFiCred.SSID);
-          AZURE_PRINTF("        PassWd: [%s]\r\n",WiFiCred.Password);
+          AZURE_PRINTF("New     SSID  : [%s]\r\n",AzureCustomization.WiFiCred.SSID);
+          AZURE_PRINTF("        PassWd: [%s]\r\n",AzureCustomization.WiFiCred.Password);
           AZURE_PRINTF("       EncMode: ");
-          switch(WiFiCred.ecnWiFi) {
+          switch(AzureCustomization.WiFiCred.ecnWiFi) {
             case   WIFI_ECN_OPEN:
               AZURE_PRINTF("Open\r\n");
               break;
@@ -499,18 +398,16 @@ int  board_setup(void)
               AZURE_PRINTF("WPA/WPA2\r\n");
               break;
             }
-          /* Update the MetaDataManager */
-          MDM_SaveGMD(GMD_WIFI,(void *)&WiFiCred);
         }
       }
     }
     
     AZURE_PRINTF("-----------------------------\r\n");
     
-    if(AzureConnectionInfo.ScopeID[0]!=0) {
-       AZURE_PRINTF("Saved   ScopeID: [%s]\r\n",AzureConnectionInfo.ScopeID);
-       AZURE_PRINTF("       DeviceID: [%s]\r\n",AzureConnectionInfo.DeviceID);
-       AZURE_PRINTF("     PrimaryKey: [%s]\r\n",AzureConnectionInfo.PrimaryKey);
+    if(AzureCustomization.AzureConnectionInfo.ScopeID[0]!=0) {
+       AZURE_PRINTF("Saved   ScopeID: [%s]\r\n",AzureCustomization.AzureConnectionInfo.ScopeID);
+       AZURE_PRINTF("       DeviceID: [%s]\r\n",AzureCustomization.AzureConnectionInfo.DeviceID);
+       AZURE_PRINTF("     PrimaryKey: [%s]\r\n",AzureCustomization.AzureConnectionInfo.PrimaryKey);
     } else {
       ChangeDefaultValue=1;
     }
@@ -559,7 +456,7 @@ int  board_setup(void)
         }
         ChangeDefaultValue=0;
        
-        if(AzureConnectionInfo.ScopeID[0]!=0) {
+        if(AzureCustomization.AzureConnectionInfo.ScopeID[0]!=0) {
           AZURE_PRINTF("\r\nDo you want to change them?(y/n)\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
         } else {
@@ -569,19 +466,17 @@ int  board_setup(void)
           NecessityToSaveMMD=1;      
           AZURE_PRINTF("\r\nEnter the Scope ID:\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
-          sprintf((char *)AzureConnectionInfo.ScopeID,"%s",console_input);
+          sprintf((char *)AzureCustomization.AzureConnectionInfo.ScopeID,"%s",console_input);
           AZURE_PRINTF("\r\nEnter the Device ID:\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
-          sprintf((char *)AzureConnectionInfo.DeviceID,"%s",console_input);
+          sprintf((char *)AzureCustomization.AzureConnectionInfo.DeviceID,"%s",console_input);
           AZURE_PRINTF("\r\nEnter the Primary Key:\r\n");
           AZURE_SCAN_WITH_BACKSPACE();
-          sprintf((char *)AzureConnectionInfo.PrimaryKey,"%s",console_input);
+          sprintf((char *)AzureCustomization.AzureConnectionInfo.PrimaryKey,"%s",console_input);
           
-          AZURE_PRINTF("New     ScopeID: [%s]\r\n",AzureConnectionInfo.ScopeID);
-          AZURE_PRINTF("       DeviceID: [%s]\r\n",AzureConnectionInfo.DeviceID);
-          AZURE_PRINTF("     PrimaryKey: [%s]\r\n",AzureConnectionInfo.PrimaryKey);
-          /* Update the MetaDataManager */
-          MDM_SaveGMD(GMD_AZURE,(void *)&AzureConnectionInfo);
+          AZURE_PRINTF("New     ScopeID: [%s]\r\n",AzureCustomization.AzureConnectionInfo.ScopeID);
+          AZURE_PRINTF("       DeviceID: [%s]\r\n",AzureCustomization.AzureConnectionInfo.DeviceID);
+          AZURE_PRINTF("     PrimaryKey: [%s]\r\n",AzureCustomization.AzureConnectionInfo.PrimaryKey);
         }
       }
     }
@@ -590,8 +485,57 @@ int  board_setup(void)
 
     /* Save the MetaDataManager in Flash if it's necessary */
     if(NecessityToSaveMMD) {
-      EraseMetaDataManager();
-      SaveMetaDataManager();
+      FLASH_EraseInitTypeDef EraseInitStruct;
+      uint32_t SectorError = 0;
+      uint32_t Address = MDM_FLASH_ADD;
+      uint64_t *WriteIndex = (uint64_t*)&AzureCustomization;
+      uint64_t *EndWritingIndex = WriteIndex +((sizeof(AZURE_Customization_t)+7)>>3);
+
+      EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
+      EraseInitStruct.Banks       = GetBank(MDM_FLASH_ADD);
+      EraseInitStruct.Page        = GetPage(MDM_FLASH_ADD);
+
+      EraseInitStruct.NbPages     = 1; /* Each page is 4k */
+
+
+      /* Unlock the Flash to enable the flash control register access *************/
+      HAL_FLASH_Unlock();
+      
+
+       /* Clear OPTVERR bit set on virgin samples */
+      __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
+      /* Clear PEMPTY bit set (as the code is executed from Flash which is not empty) */
+      if (__HAL_FLASH_GET_FLAG(FLASH_FLAG_PEMPTY) != 0) {
+        __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PEMPTY);
+      }
+
+
+      if(HAL_FLASHEx_Erase(&EraseInitStruct, &SectorError) != HAL_OK){
+        /* Error occurred while sector erase.
+          User can add here some code to deal with this error.
+          SectorError will contain the faulty sector and then to know the code error on this sector,
+          user can call function 'HAL_FLASH_GetError()'
+          FLASH_ErrorTypeDef errorcode = HAL_FLASH_GetError(); */
+        AZURE_PRINTF("MetaDataManager Flash sector erase error\r\n");
+        while(1);
+      }
+      
+      AzureCustomization.DataInitialized=AZURE_VALID_DATA_FLASH;
+      
+       for(; WriteIndex<EndWritingIndex; WriteIndex++) {
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, Address,*WriteIndex) == HAL_OK){
+          Address = Address + 8;
+        } else {
+          /* Error occurred while writing data in Flash memory.
+             User can add here some code to deal with this error
+             FLASH_ErrorTypeDef errorcode = HAL_FLASH_GetError(); */
+          while(1);
+        }
+      }
+
+      /* Lock the Flash to disable the flash control register access (recommended
+       to protect the FLASH memory against possible unwanted operation) *********/
+      HAL_FLASH_Lock();
     }
     
   }
@@ -641,7 +585,7 @@ int  board_setup(void)
       return WIFI_FAIL;
     }
     
-    if( WIFI_Connect(WiFiCred.SSID, WiFiCred.Password, WiFiCred.ecnWiFi) == WIFI_STATUS_OK)
+    if( WIFI_Connect(AzureCustomization.WiFiCred.SSID, AzureCustomization.WiFiCred.Password, AzureCustomization.WiFiCred.ecnWiFi) == WIFI_STATUS_OK)
     { 
       AZURE_PRINTF("ES-WIFI Connected:\r\n");
       
