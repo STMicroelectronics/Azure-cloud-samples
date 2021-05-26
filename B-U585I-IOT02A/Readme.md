@@ -1,0 +1,3 @@
+# Request Code Sample
+
+Please use this [link](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fcommunity.st.com%2Fs%2Fonlinesupport&data=04%7C01%7CTim.Stapko%40microsoft.com%7C2dc8cb5b7ee049fa347e08d8d9d87794%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C637498871035683991%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C1000&sdata=RYlofLgXX6rs3xo0MedM0J4k%2FHhoMs%2FQVuiuwEOYcEw%3D&reserved=0) and request access to **bold Azure_RTOS_6.1_STM32U585-DK_BetaRelease_Setup.exe**. Install this executable file and view its contents on your root directory. Open and follow the instructions in **bold "Getting Started with STM32U5-DK.pdf"**.
