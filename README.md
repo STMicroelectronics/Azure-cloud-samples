@@ -15,9 +15,6 @@ The code available in this repo implements the following changes:
 * runs on STM32U5 based [B-U585I-IOT02A](https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html) board
 * can take device connection settings from UART and saves them in flash, for easier provisioning
 
-## Getting started
-In order to setup development kits to connect to Azure IoT Plug-and-Play, please follow the guides available [here]().
-
 ## IoT Plug-and-Play Device Templates
 
 Device templates use DTDLv2 and include two components: the standard [Azure device info](https://github.com/Azure/iot-plugandplay-models/blob/main/dtmi/azure/devicemanagement/deviceinformation-1.json) 
